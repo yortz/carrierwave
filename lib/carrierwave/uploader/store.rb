@@ -59,7 +59,7 @@ module CarrierWave
         puts new_file.to_json
        
         unless new_file
-          if model.class.public_method_defined?(:delayed?) && model.delayed?
+          if model.class.public_method_defined?(:delayed?)  && model.delayed?
             @file = CarrierWave::SanitizedFile.new("#{self.cache_dir}/#{self.model.cache_name}") 
             @file.instance_variable_set("@content_type", self.model.object_content_type)
             @file.instance_variable_set("@original_filename", self.model.object_file_name)

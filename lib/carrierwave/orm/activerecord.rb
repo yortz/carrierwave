@@ -18,11 +18,14 @@ module CarrierWave
 
       validates_integrity_of column if uploader_option(column.to_sym, :validate_integrity)
       validates_processing_of column if uploader_option(column.to_sym, :validate_processing)
-
+      
+      # # return true unless JSON.parse(model.class.instance_variable_get("@_mounters").to_json)["image"]["options"]["delayed"] == "null"
+      
       after_save "store_#{column}!"  , :unless => Proc.new { |model| model.class.public_method_defined?(:delayed?) && model.delayed? }
       before_save "write_#{column}_identifier"
       after_destroy "remove_#{column}!"
     end
+    
 
     ##
     # Makes the record invalid if the file couldn't be uploaded due to an integrity error
