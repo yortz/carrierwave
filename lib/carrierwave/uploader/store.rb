@@ -53,21 +53,23 @@ module CarrierWave
       #
       def store!(new_file=nil)
         cache!(new_file) if new_file
-        
-        
-               
+       
+        # this is the hack
         puts "NEW FILE INSOECT"
         puts new_file.to_json
-        # this is the hack
+       
         unless new_file
-          @file = CarrierWave::SanitizedFile.new("#{self.cache_dir}/#{self.model.cache_name}") 
-          @file.instance_variable_set("@content_type", self.model.object_content_type)
-          @file.instance_variable_set("@original_filename", self.model.object_file_name)
-          @cache_id = self.model.cache_name.to_s.split('/', 2)
+          if model.class.public_method_defined?(:delayed?) && model.delayed?
+            @file = CarrierWave::SanitizedFile.new("#{self.cache_dir}/#{self.model.cache_name}") 
+            @file.instance_variable_set("@content_type", self.model.object_content_type)
+            @file.instance_variable_set("@original_filename", self.model.object_file_name)
+            @cache_id = self.model.cache_name.to_s.split('/', 2)
+          end
         end
         puts "NEW FILE: #{@file.to_json}"
         puts "CACHE_ID FILE:"
         puts @cache_id
+        #end of hack
        
         
         if @file and @cache_id
