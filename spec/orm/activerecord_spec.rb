@@ -18,7 +18,10 @@ class TestMigration < ActiveRecord::Migration
     create_table :events, :force => true do |t|
       t.column :image, :string
       t.column :textfile, :string
-      t.column :cache_name, :string
+      t.column :image_cache_name, :string
+      t.column :image_file_name, :string
+      t.column :image_content_type, :string
+      
       t.column :foo, :string
     end
   end
@@ -61,7 +64,6 @@ describe CarrierWave::ActiveRecord do
 
       it "should return blank uploader when nothing has been assigned" do
         @event.image.should be_blank
-         puts JSON.parse(@event.instance_variable_get("@_mounters").to_json)["image"]["options"]["delayed"]
       end
 
       it "should return blank uploader when an empty string has been assigned" do
@@ -321,8 +323,8 @@ describe CarrierWave::ActiveRecord do
       $arclass += 1
       eval <<-RUBY
         class Event#{$arclass} < Event
-          def delayed?
-             true 
+          def save_cache_column
+            self.cache_name = image.cache_name
           end
         end
         
@@ -339,11 +341,16 @@ describe CarrierWave::ActiveRecord do
      
     end
 
+    
     describe '#image' do
-
+      
+      it "should be delayed by carrierwave" do
+        @event.should respond_to("delayed_by_carrierwave?")
+        @event.delayed_by_carrierwave?.should be_true
+      end
+      
       it "should return blank uploader when nothing has been assigned" do
         @event.image.should be_blank
-         puts JSON.parse(@event.instance_variable_get("@_mounters").to_json)["image"]["options"]["delayed"]
       end
 
       it "should return blank uploader when an empty string has been assigned" do
@@ -454,16 +461,21 @@ describe CarrierWave::ActiveRecord do
 
     describe '#save' do
 
+      it "save should be valid" do
+        @event.save
+        @event.new_record?.should be_false
+      end
+
       it "should do nothing when no file has been assigned" do
         @event.save.should be_true
         @event.image.should be_blank
       end
 
-      it "should copy the file to the upload directory when a file has been assigned" do
+      it "should NOT copy the file to the upload directory when a file has been assigned" do
         @event.image = stub_file('test.jpeg')
         @event.save.should be_true
         @event.image.should be_an_instance_of(@uploader)
-        @event.image.current_path.should == public_path('uploads/test.jpeg')
+        @event.image.current_path.should_not == public_path('uploads/test.jpeg')
       end
 
       it "should do nothing when a validation fails" do
@@ -490,28 +502,48 @@ describe CarrierWave::ActiveRecord do
         @event[:image].should == 'test.jpeg'
       end
 
-      it "should remove the image if remove_image? returns true" do
-        @event.image = stub_file('test.jpeg')
-        @event.save!
-        @event.remove_image = true
-        @event.save!
-        @event.reload
-        @event.image.should be_blank
-        @event[:image].should == ''
+      describe "with store_asset" do
+        before(:each) do
+          @event.image = stub_file('test.jpeg')
+          @event.image.mounted_as.should == :image
+          @event.image.model.should == @event
+          @event.save!
+          @event.store_image!
+        end
+        
+        
+        
+        it "should remove the image if remove_image? returns true" do
+          
+          @event.remove_image = true
+          @event.save!
+          @event.reload
+          @event.image.should be_blank
+          @event[:image].should == ''
+        end
+        
+        it "mounter" do
+          @event.reload
+          @event.image.mounted_as.should == :image
+          @event.image.model.should == @event
+        end
+        
       end
 
     end
 
     describe '#destroy' do
-
+      
       it "should do nothing when no file has been assigned" do
         @event.save.should be_true
+        @event.store_image!
         @event.destroy
       end
 
       it "should remove the file from the filesystem" do
         @event.image = stub_file('test.jpeg')
         @event.save.should be_true
+        @event.store_image!
         @event.image.should be_an_instance_of(@uploader)
         @event.image.current_path.should == public_path('uploads/test.jpeg')
         @event.destroy
@@ -536,6 +568,7 @@ describe CarrierWave::ActiveRecord do
         it "should copy the file to the upload directory when a file has been assigned" do
           @event.image = stub_file('test.jpeg')
           @event.save.should be_true
+          @event.store_image!
           @event.image.should be_an_instance_of(@uploader)
           @event.image.current_path.should == public_path('uploads/jonas.jpeg')
         end
