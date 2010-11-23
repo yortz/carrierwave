@@ -21,7 +21,7 @@ module CarrierWave
       
       after_save "store_#{column}!", :unless => :delayed_by_carrierwave? # only if is not delayed
       before_save "write_#{column}_identifier"
-      after_destroy "remove_#{column}!"
+      after_destroy "remove_#{column}!", :unless => :delayed_by_carrierwave? # only if is not delayed
     end
     
 
