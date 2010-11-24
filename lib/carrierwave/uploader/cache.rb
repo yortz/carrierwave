@@ -91,7 +91,6 @@ module CarrierWave
         unless new_file.empty?
           with_callbacks(:cache, new_file) do
             self.cache_id = CarrierWave.generate_cache_id unless cache_id
-
             @filename = new_file.filename
             self.original_filename = new_file.filename
 

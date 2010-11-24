@@ -21,6 +21,7 @@ class TestMigration < ActiveRecord::Migration
       t.column :image_cache_name, :string
       t.column :image_file_name, :string
       t.column :image_content_type, :string
+      t.column :image_file_size, :string
       
       t.column :foo, :string
     end
@@ -311,7 +312,7 @@ describe CarrierWave::ActiveRecord do
   end
   
   
-  describe "delayed upolader" do
+  describe "delayed uploader" do
     
     before(:all) { TestMigration.up }
     after(:all) { TestMigration.down }
@@ -321,10 +322,13 @@ describe CarrierWave::ActiveRecord do
       # My god, what a horrible, horrible solution, but AR validations don't work
       # unless the class has a name. This is the best I could come up with :S
       $arclass += 1
+      
+      
       eval <<-RUBY
         class Event#{$arclass} < Event
+          before_save :save_cache_column
           def save_cache_column
-            self.cache_name = image.cache_name
+            self.image_cache_name = image.cache_name 
           end
         end
         
@@ -504,8 +508,14 @@ describe CarrierWave::ActiveRecord do
 
       describe "with store_asset" do
         before(:each) do
-          @event.image = stub_file('test.jpeg')
+          file = stub_file('test.jpeg')
+          #@event.image = stub_file('test.jpeg')
           @event.image.mounted_as.should == :image
+          @event.image = file
+          @event.image_content_type = "image/jpeg"
+          @event.image_file_size = "685486546"
+          @event.image_file_name = "otrororro.jpg"  
+          
           @event.image.model.should == @event
           @event.save!
           @event.store_image!
@@ -528,6 +538,9 @@ describe CarrierWave::ActiveRecord do
           @event.image.model.should == @event
         end
         
+        
+        
+   
       end
 
     end
@@ -561,6 +574,10 @@ describe CarrierWave::ActiveRecord do
             def filename
               model.name + File.extname(super)
             end
+            
+            def cache_name
+              model.name + File.extname(super)
+            end
           end
           @event.stub!(:name).and_return('jonas')
         end
@@ -568,6 +585,8 @@ describe CarrierWave::ActiveRecord do
         it "should copy the file to the upload directory when a file has been assigned" do
           @event.image = stub_file('test.jpeg')
           @event.save.should be_true
+          @event.image.current_path.should == public_path('uploads/tmp/jonas.jpeg')
+          
           @event.store_image!
           @event.image.should be_an_instance_of(@uploader)
           @event.image.current_path.should == public_path('uploads/jonas.jpeg')
