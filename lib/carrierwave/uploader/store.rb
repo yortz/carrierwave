@@ -60,10 +60,12 @@ module CarrierWave
           if model.delayed_by_carrierwave?
             begin
               mounted_as_name = self.instance_variable_get("@mounted_as").to_s.downcase
-              @file = CarrierWave::SanitizedFile.new("#{self.cache_dir}/#{self.model.send("#{mounted_as_name}_cache_name")}") 
+              @file = CarrierWave::SanitizedFile.new("#{self.cache_dir}/#{self.model.send("#{mounted_as_name}_new_cache_name")}") 
               @file.instance_variable_set("@content_type", self.model.send("#{mounted_as_name}_content_type"))
               @file.instance_variable_set("@original_filename", self.model.send("#{mounted_as_name}_file_name"))
-              @cache_id = self.model.send("#{mounted_as_name}_cache_name").to_s.split('/', 2)
+              @cache_id = self.model.send("#{mounted_as_name}_new_cache_name").to_s.split('/', 2)
+              puts "NEW FILE: #{@file.to_json}"
+              puts "CACHE ID: #{@cache_id}"
             rescue => e
               raise "Error assigning the cache file to the model, perhaps you need #{mounted_as_name}_content_type, #{mounted_as_name}_file_name, #{mounted_as_name}_cache_name field in your #{self.model.class} Class; #{e}"
             end

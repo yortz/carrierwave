@@ -105,6 +105,3 @@ DEPENDENCIES
   sequel
   sqlite3-ruby
   timecop
-
-METADATA
-  version: 1.0.6
